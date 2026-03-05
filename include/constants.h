@@ -13,4 +13,8 @@
 #define MAX_ROOM_SIZE 10
 #define ROOM_SPACING 1
 
+#define EMPTY 0
+#define WALL 1
+#define FLOOR 2
+#define DEBUG 3
 #endif // !CONSTANTS_H

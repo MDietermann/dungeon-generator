@@ -26,18 +26,14 @@ int main(void) {
   }
 
   int roomsSize = sizeof(rooms) / sizeof(rooms[0]);
+  ConnectRooms(rooms, map);
+  FillWalls(map);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
     {
       ClearBackground(BLACK);
       DrawMap2D(map);
-      for (int i = 0; i < roomsSize - 1; i++) {
-        struct Room *r1 = &rooms[i];
-        struct Room *r2 = &rooms[i + 1];
-        if (r1->valid && r2->valid)
-          DebugConnectRooms(r1, r2);
-      }
     }
     EndDrawing();
   }

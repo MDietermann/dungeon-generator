@@ -1,4 +1,11 @@
 #include "room.h"
+#include "constants.h"
+#include "global_imports.h"
+#include "helper.h"
+#include <limits.h>
+#include <math.h>
+#include <raylib.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -21,7 +28,7 @@ void InitRooms(struct Room *rooms) {
       if (RoomNotOverlapping(&newRoom, rooms)) {
         newRoom.valid = 1;
         rooms[i] = newRoom;
-        continue;
+        break;
       }
 
       retryCounter++;
@@ -81,21 +88,122 @@ void AddRoomToMap(
 }
 
 Vector2 RoomCenter(struct Room *r) {
-  Vector2 center = {r->x * CELL_SIZE + (r->width * CELL_SIZE / 2),
-                    r->y * CELL_SIZE + (r->height * CELL_SIZE / 2)};
+  fprintf(stderr, "X: %d | Y: %d | W: %d | H: %d\n", r->x, r->y, r->width,
+          r->height);
+  Vector2 center = {r->x + floor(r->width / 2), r->y + floor(r->height / 2)};
 
   return center;
 }
 
-void DebugConnectRooms(struct Room *r1, struct Room *r2) {
+void DebugConnectRooms(
+    struct Room *r1, struct Room *r2,
+    int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]) {
   Vector2 r1Center = RoomCenter(r1);
   Vector2 r2Center = RoomCenter(r2);
 
-  DrawLineEx(r1Center, r2Center, 2, RED);
+  Vector2 r1CenterGlobal = LocalToGlobalCoords(r1Center);
+  Vector2 r2CenterGlobal = LocalToGlobalCoords(r2Center);
+  DrawLineEx(r1CenterGlobal, r2CenterGlobal, 2, RED);
+
+  int sx;
+  int ex;
+  if (r1Center.x < r2Center.x) {
+    sx = r1Center.x;
+    ex = r2Center.x;
+  } else {
+    sx = r2Center.x;
+    ex = r1Center.x;
+  }
+
+  while (sx < ex) {
+    int sy = GetYfromX(r1Center, r2Center, sx);
+    fprintf(stderr, "R1Center: (%d, %d) | R2Center: (%d, %d) | X: %d | Y: %d\n",
+            r1Center.x, r1Center.y, r2Center.x, r2Center.y, sx, sy);
+    map[sy][sx] = 2;
+
+    sx++;
+  }
 }
 
 void ConnectRooms(
-    int roomCount, struct Room *rooms,
+    struct Room *rooms,
     int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]) {
+
+  struct Room *currentRoom = &rooms[0];
+
+  for (int i = 0; i < NUM_ROOMS; i++) {
+    if (!rooms[i].valid)
+      continue;
+
+    struct Room *closestRoom = GetClosestRoomCenter(currentRoom, rooms);
+    if (closestRoom == NULL)
+      break;
+    AddCorridor(currentRoom, closestRoom, map);
+    currentRoom = closestRoom;
+  }
+
   return;
+}
+
+void AddCorridor(struct Room *r1, struct Room *r2,
+                 int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]) {
+  Vector2 sRoom = RoomCenter(r1);
+  Vector2 eRoom = RoomCenter(r2);
+
+  int sx, ex;
+  int sy, ey;
+
+  if (sRoom.x < eRoom.x) {
+    sx = sRoom.x;
+    ex = eRoom.x;
+  } else {
+    sx = eRoom.x;
+    ex = sRoom.x;
+  }
+
+  if (sRoom.y < eRoom.y) {
+    sy = sRoom.y;
+    ey = eRoom.y;
+  } else {
+    sy = eRoom.y;
+    ey = sRoom.y;
+  }
+
+  for (int y = sy; y < ey; y++) {
+    map[y][sx] = FLOOR;
+  }
+
+  for (int x = sx; x < ex; x++) {
+    map[sy][x] = FLOOR;
+  }
+
+  r1->connected = 1;
+}
+
+struct Room *GetClosestRoomCenter(struct Room *currentRoom,
+                                  struct Room *rooms) {
+  int closest = INT_MAX;
+  struct Room *closestRoom = NULL;
+
+  for (int i = 0; i < NUM_ROOMS; i++) {
+    if (!rooms[i].valid)
+      continue;
+
+    if (rooms[i].connected)
+      continue;
+
+    if (currentRoom->x == rooms[i].x && currentRoom->y == rooms[i].y)
+      continue;
+
+    Vector2 p1 = {currentRoom->x, currentRoom->y};
+    Vector2 p2 = {rooms[i].x, rooms[i].y};
+    int distSq = GetDistance(&p1, &p2);
+
+    if (distSq < closest) {
+      closest = distSq;
+      closestRoom = &rooms[i];
+    }
+  }
+
+  return closestRoom;
 }

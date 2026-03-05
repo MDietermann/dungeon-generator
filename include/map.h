@@ -6,5 +6,6 @@
 
 void InitMap(int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]);
 void DrawMap2D(int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]);
+void FillWalls(int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]);
 
 #endif // !MAP_H
