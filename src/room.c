@@ -88,8 +88,6 @@ void AddRoomToMap(
 }
 
 Vector2 RoomCenter(struct Room *r) {
-  fprintf(stderr, "X: %d | Y: %d | W: %d | H: %d\n", r->x, r->y, r->width,
-          r->height);
   Vector2 center = {r->x + floor(r->width / 2), r->y + floor(r->height / 2)};
 
   return center;
@@ -117,8 +115,6 @@ void DebugConnectRooms(
 
   while (sx < ex) {
     int sy = GetYfromX(r1Center, r2Center, sx);
-    fprintf(stderr, "R1Center: (%d, %d) | R2Center: (%d, %d) | X: %d | Y: %d\n",
-            r1Center.x, r1Center.y, r2Center.x, r2Center.y, sx, sy);
     map[sy][sx] = 2;
 
     sx++;

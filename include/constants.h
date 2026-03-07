@@ -17,4 +17,14 @@
 #define WALL 1
 #define FLOOR 2
 #define DEBUG 3
+
+#define MOVEMENT_SPEED 50
+#define TURN_SPEED 4
+#define DIR_UP -1
+#define DIR_DOWN 1
+#define DIR_LEFT -1
+#define DIR_RIGHT 1
+#define ROTATE_LEFT -1
+#define ROTATE_RIGHT 1
+
 #endif // !CONSTANTS_H
