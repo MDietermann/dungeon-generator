@@ -4,8 +4,8 @@
 #include "constants.h"
 #include "global_imports.h"
 
-void InitMap(int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]);
-void DrawMap2D(int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]);
-void FillWalls(int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]);
+void InitMap(int map[GetMapHeight()][GetMapWidth()]);
+void DrawMap2D(int map[GetMapHeight()][GetMapWidth()]);
+void FillWalls(int map[GetMapHeight()][GetMapWidth()]);
 
 #endif // !MAP_H

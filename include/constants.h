@@ -1,30 +1,45 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define WINDOW_WIDTH 1920
-#define WINDOW_HEIGHT 1080
-#define TITLE "Raylib Dungeon Generator"
-#define FPS 60
+struct MapData {
+  int width, height, cellSize;
+  int emptyCell, wallCell, floorCell, debugCell;
+};
 
-#define CELL_SIZE 16
+struct RoomData {
+  int numberOfRooms;
+  int minSize, maxSize;
+  int spacing;
+  int maxRetries;
+};
 
-#define NUM_ROOMS 50
-#define MIN_ROOM_SIZE 5
-#define MAX_ROOM_SIZE 10
-#define ROOM_SPACING 1
+// Global Getter
+struct MapData *GetMapData();
+struct RoomData *GetRoomData();
+int GetMapWidth();
+int GetMapHeight();
+int GetCellSize();
+int GetNumberOfRooms();
+int GetMinRoomSize();
+int GetMaxRoomSize();
+int GetRoomSpacing();
+int GetRoomMaxIterationRetries();
+int GetEmptyCell();
+int GetWallCell();
+int GetFloorCell();
+int GetDebugCell();
 
-#define EMPTY 0
-#define WALL 1
-#define FLOOR 2
-#define DEBUG 3
-
-#define MOVEMENT_SPEED 50
-#define TURN_SPEED 4
-#define DIR_UP -1
-#define DIR_DOWN 1
-#define DIR_LEFT -1
-#define DIR_RIGHT 1
-#define ROTATE_LEFT -1
-#define ROTATE_RIGHT 1
+// Global Setter
+void InitMapData(int width, int height, int cellSize);
+void InitRoomData(int numberOfRooms, int minSize, int maxSize, int spacing,
+                  int maxRetries);
+void SetMapWidth(int width);
+void SetMapHeight(int height);
+void SetCellSize(int cellSize);
+void SetNumberOfRooms(int numberOfRooms);
+void SetMinRoomSize(int minSize);
+void SetMaxRoomSize(int maxSize);
+void SetRoomSpacing(int spacing);
+void SetRoomMaxIterationRetries(int maxRetries);
 
 #endif // !CONSTANTS_H

@@ -4,43 +4,59 @@
 #include "helper.h"
 #include <limits.h>
 #include <math.h>
-#include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-void InitRooms(struct Room *rooms) {
-  int roomRetries = 20;
+typedef void (*RoomOperation)(struct Room *rooms, int roomId);
+
+void ForEachRoom(struct Room *rooms, const RoomOperation op) {
+  struct RoomData *rd = GetRoomData();
+  struct MapData *md = GetMapData();
+
+  if (rd == NULL) {
+    fprintf(stderr, "RoomData not initialized. Runn InitRoomData first!\n");
+    return;
+  }
+
+  if (md == NULL) {
+    fprintf(stderr, "MapData not initialized. Run InitMapData first!");
+    return;
+  }
+
+  for (int roomId = 0; roomId < GetNumberOfRooms(); roomId++) {
+    op(rooms, roomId);
+  }
+}
+
+void CreateRoom(struct Room *rooms, const int roomId) {
+  int retryCounter = 0;
+  struct Room newRoom;
   srand(time(NULL));
-  for (int i = 0; i < NUM_ROOMS; i++) {
-    int retryCounter = 0;
-    struct Room newRoom;
-    while (retryCounter < roomRetries) {
-      newRoom.width = (rand() % MAX_ROOM_SIZE) + MIN_ROOM_SIZE;
-      newRoom.height = (rand() % MAX_ROOM_SIZE) + MIN_ROOM_SIZE;
-      newRoom.connected = 0;
-      newRoom.valid = 0;
-      newRoom.x =
-          (rand() % ((WINDOW_WIDTH / CELL_SIZE - newRoom.width) - 2)) + 2;
-      newRoom.y =
-          (rand() % ((WINDOW_HEIGHT / CELL_SIZE - newRoom.height) - 2)) + 2;
 
-      if (RoomNotOverlapping(&newRoom, rooms)) {
-        newRoom.valid = 1;
-        rooms[i] = newRoom;
-        break;
-      }
+  while (retryCounter < GetRoomMaxIterationRetries()) {
+    newRoom.width = (rand() % GetMaxRoomSize()) + GetMinRoomSize();
+    newRoom.height = (rand() % GetMaxRoomSize()) + GetMinRoomSize();
+    newRoom.connected = 0;
+    newRoom.valid = 0;
+    newRoom.x = (rand() % ((GetMapWidth() - newRoom.width) - 2)) + 2;
+    newRoom.y = (rand() % ((GetMapHeight() - newRoom.height) - 2)) + 2;
 
-      retryCounter++;
+    if (RoomNotOverlapping(&newRoom, rooms)) {
+      newRoom.valid = 1;
+      rooms[roomId] = newRoom;
+      break;
     }
+
+    retryCounter++;
   }
 }
 
 int DoOverlap(struct Room *r1, struct Room *r2) {
-  int r1x1 = r1->x - ROOM_SPACING;
-  int r1x2 = r1->x + r1->width + ROOM_SPACING;
-  int r1y1 = r1->y - ROOM_SPACING;
-  int r1y2 = r1->y + r1->height + ROOM_SPACING;
+  int r1x1 = r1->x - GetRoomSpacing();
+  int r1x2 = r1->x + r1->width + GetRoomSpacing();
+  int r1y1 = r1->y - GetRoomSpacing();
+  int r1y2 = r1->y + r1->height + GetRoomSpacing();
 
   int r2x1 = r2->x;
   int r2x2 = r2->x + r2->width;
@@ -56,19 +72,9 @@ int DoOverlap(struct Room *r1, struct Room *r2) {
   return 1;
 }
 
-int RoomNotOverlapping(struct Room *r1, struct Room *rooms) {
-  for (int i = 0; i < NUM_ROOMS; i++) {
-    if (DoOverlap(r1, &rooms[i])) {
-      return 0;
-    }
-  }
+void InitRooms(struct Room *rooms) { ForEachRoom(rooms, CreateRoom); }
 
-  return 1;
-}
-
-void AddRoomToMap(
-    struct Room *room,
-    int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]) {
+void AddRoomToMap(struct Room *room, int map[GetMapHeight()][GetMapWidth()]) {
 
   int roomTop = room->y;
   int roomBottom = room->y + room->height;
@@ -93,41 +99,10 @@ Vector2 RoomCenter(struct Room *r) {
   return center;
 }
 
-void DebugConnectRooms(
-    struct Room *r1, struct Room *r2,
-    int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]) {
-  Vector2 r1Center = RoomCenter(r1);
-  Vector2 r2Center = RoomCenter(r2);
-
-  Vector2 r1CenterGlobal = LocalToGlobalCoords(r1Center);
-  Vector2 r2CenterGlobal = LocalToGlobalCoords(r2Center);
-  DrawLineEx(r1CenterGlobal, r2CenterGlobal, 2, RED);
-
-  int sx;
-  int ex;
-  if (r1Center.x < r2Center.x) {
-    sx = r1Center.x;
-    ex = r2Center.x;
-  } else {
-    sx = r2Center.x;
-    ex = r1Center.x;
-  }
-
-  while (sx < ex) {
-    int sy = GetYfromX(r1Center, r2Center, sx);
-    map[sy][sx] = 2;
-
-    sx++;
-  }
-}
-
-void ConnectRooms(
-    struct Room *rooms,
-    int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]) {
-
+void ConnectRooms(struct Room *rooms, int map[GetMapHeight()][GetMapWidth()]) {
   struct Room *currentRoom = &rooms[0];
 
-  for (int i = 0; i < NUM_ROOMS; i++) {
+  for (int i = 0; i < GetNumberOfRooms(); i++) {
     if (!rooms[i].valid)
       continue;
 
@@ -142,9 +117,10 @@ void ConnectRooms(
 }
 
 void AddCorridor(struct Room *r1, struct Room *r2,
-                 int map[WINDOW_HEIGHT / CELL_SIZE][WINDOW_WIDTH / CELL_SIZE]) {
+                 int map[GetMapHeight()][GetMapWidth()]) {
   Vector2 sRoom = RoomCenter(r1);
   Vector2 eRoom = RoomCenter(r2);
+  struct MapData *md = GetMapData();
 
   int sx, ex;
   int sy, ey;
@@ -166,11 +142,11 @@ void AddCorridor(struct Room *r1, struct Room *r2,
   }
 
   for (int y = sy; y < ey; y++) {
-    map[y][sx] = FLOOR;
+    map[y][sx] = md->floorCell;
   }
 
   for (int x = sx; x < ex; x++) {
-    map[sy][x] = FLOOR;
+    map[sy][x] = md->floorCell;
   }
 
   r1->connected = 1;
@@ -181,7 +157,7 @@ struct Room *GetClosestRoomCenter(struct Room *currentRoom,
   int closest = INT_MAX;
   struct Room *closestRoom = NULL;
 
-  for (int i = 0; i < NUM_ROOMS; i++) {
+  for (int i = 0; i < GetNumberOfRooms(); i++) {
     if (!rooms[i].valid)
       continue;
 
