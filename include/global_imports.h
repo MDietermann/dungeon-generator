@@ -3,5 +3,6 @@
 
 #include <raylib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #endif // !GLOBAL_IMPORTS_H

@@ -11,8 +11,8 @@
 typedef void (*RoomOperation)(struct Room *rooms, int roomId);
 
 void ForEachRoom(struct Room *rooms, const RoomOperation op) {
-  struct RoomData *rd = GetRoomData();
-  struct MapData *md = GetMapData();
+  const struct RoomData *rd = GetRoomData();
+  const struct MapData *md = GetMapData();
 
   if (rd == NULL) {
     fprintf(stderr, "RoomData not initialized. Runn InitRoomData first!\n");
@@ -32,7 +32,6 @@ void ForEachRoom(struct Room *rooms, const RoomOperation op) {
 void CreateRoom(struct Room *rooms, const int roomId) {
   int retryCounter = 0;
   struct Room newRoom;
-  srand(time(NULL));
 
   while (retryCounter < GetRoomMaxIterationRetries()) {
     newRoom.width = (rand() % GetMaxRoomSize()) + GetMinRoomSize();
@@ -52,16 +51,16 @@ void CreateRoom(struct Room *rooms, const int roomId) {
   }
 }
 
-int DoOverlap(struct Room *r1, struct Room *r2) {
-  int r1x1 = r1->x - GetRoomSpacing();
-  int r1x2 = r1->x + r1->width + GetRoomSpacing();
-  int r1y1 = r1->y - GetRoomSpacing();
-  int r1y2 = r1->y + r1->height + GetRoomSpacing();
+int DoOverlap(const struct Room *r1, const struct Room *r2) {
+  const int r1x1 = r1->x - GetRoomSpacing();
+  const int r1x2 = r1->x + r1->width + GetRoomSpacing();
+  const int r1y1 = r1->y - GetRoomSpacing();
+  const int r1y2 = r1->y + r1->height + GetRoomSpacing();
 
-  int r2x1 = r2->x;
-  int r2x2 = r2->x + r2->width;
-  int r2y1 = r2->y;
-  int r2y2 = r2->y + r2->height;
+  const int r2x1 = r2->x;
+  const int r2x2 = r2->x + r2->width;
+  const int r2y1 = r2->y;
+  const int r2y2 = r2->y + r2->height;
 
   if (r1x1 >= r2x2 || r2x1 >= r1x2)
     return 0;
@@ -72,35 +71,57 @@ int DoOverlap(struct Room *r1, struct Room *r2) {
   return 1;
 }
 
-void InitRooms(struct Room *rooms) { ForEachRoom(rooms, CreateRoom); }
+void InitRooms(struct Room *rooms) {
+  srand(time(NULL));
+  ForEachRoom(rooms, CreateRoom);
+}
 
-void AddRoomToMap(struct Room *room, int map[GetMapHeight()][GetMapWidth()]) {
+int RoomNotOverlapping(struct Room *r1, struct Room *rooms) {
+  for (int i = 0; i < GetNumberOfRooms(); i++) {
+    if (DoOverlap(r1, &rooms[i])) {
+      return 0;
+    }
+  }
 
-  int roomTop = room->y;
-  int roomBottom = room->y + room->height;
-  int roomLeft = room->x;
-  int roomRight = room->x + room->width;
+  return 1;
+}
+
+void AddRoomToMap(const struct Room *room, int map[GetMapHeight()][GetMapWidth()]) {
+
+  const int roomTop = room->y;
+  const int roomBottom = room->y + room->height;
+  const int roomLeft = room->x;
+  const int roomRight = room->x + room->width;
 
   for (int row = roomTop; row < roomBottom; row++) {
     for (int col = roomLeft; col < roomRight; col++) {
       if (row == roomTop || row == roomBottom - 1 || col == roomLeft ||
           col == roomRight - 1) {
-        map[row][col] = 1;
+        map[row][col] = GetWallCell();
         continue;
       }
-      map[row][col] = 2;
+      map[row][col] = GetFloorCell();
     }
   }
 }
 
-Vector2 RoomCenter(struct Room *r) {
-  Vector2 center = {r->x + floor(r->width / 2), r->y + floor(r->height / 2)};
-
+Vector2 RoomCenter(const struct Room *r) {
+  const Vector2 center = {r->x + floor(r->width / 2), r->y + floor(r->height / 2)};
   return center;
 }
 
 void ConnectRooms(struct Room *rooms, int map[GetMapHeight()][GetMapWidth()]) {
-  struct Room *currentRoom = &rooms[0];
+  struct Room *currentRoom = NULL;
+
+  for (int i = 0; i < GetNumberOfRooms(); i++) {
+    if (rooms[i].valid) {
+      currentRoom = &rooms[i];
+      break;
+    }
+  }
+
+  if (currentRoom == NULL)
+    return;
 
   for (int i = 0; i < GetNumberOfRooms(); i++) {
     if (!rooms[i].valid)
@@ -112,47 +133,36 @@ void ConnectRooms(struct Room *rooms, int map[GetMapHeight()][GetMapWidth()]) {
     AddCorridor(currentRoom, closestRoom, map);
     currentRoom = closestRoom;
   }
-
-  return;
 }
 
-void AddCorridor(struct Room *r1, struct Room *r2,
+void AddCorridor(struct Room *r1, const struct Room *r2,
                  int map[GetMapHeight()][GetMapWidth()]) {
-  Vector2 sRoom = RoomCenter(r1);
-  Vector2 eRoom = RoomCenter(r2);
-  struct MapData *md = GetMapData();
+  const Vector2 sRoom = RoomCenter(r1);
+  const Vector2 eRoom = RoomCenter(r2);
 
-  int sx, ex;
-  int sy, ey;
+  const int sx = (int)sRoom.x;
+  const int sy = (int)sRoom.y;
+  const int ex = (int)eRoom.x;
+  const int ey = (int)eRoom.y;
 
-  if (sRoom.x < eRoom.x) {
-    sx = sRoom.x;
-    ex = eRoom.x;
-  } else {
-    sx = eRoom.x;
-    ex = sRoom.x;
+  // Vertical segment from sRoom.y to eRoom.y at column sRoom.x
+  const int yStart = sy < ey ? sy : ey;
+  const int yEnd = sy < ey ? ey : sy;
+  for (int y = yStart; y <= yEnd; y++) {
+    map[y][sx] = GetFloorCell();
   }
 
-  if (sRoom.y < eRoom.y) {
-    sy = sRoom.y;
-    ey = eRoom.y;
-  } else {
-    sy = eRoom.y;
-    ey = sRoom.y;
-  }
-
-  for (int y = sy; y < ey; y++) {
-    map[y][sx] = md->floorCell;
-  }
-
-  for (int x = sx; x < ex; x++) {
-    map[sy][x] = md->floorCell;
+  // Horizontal segment from sRoom.x to eRoom.x at row eRoom.y
+  const int xStart = sx < ex ? sx : ex;
+  const int xEnd = sx < ex ? ex : sx;
+  for (int x = xStart; x <= xEnd; x++) {
+    map[ey][x] = GetFloorCell();
   }
 
   r1->connected = 1;
 }
 
-struct Room *GetClosestRoomCenter(struct Room *currentRoom,
+struct Room *GetClosestRoomCenter(const struct Room *currentRoom,
                                   struct Room *rooms) {
   int closest = INT_MAX;
   struct Room *closestRoom = NULL;
@@ -169,7 +179,7 @@ struct Room *GetClosestRoomCenter(struct Room *currentRoom,
 
     Vector2 p1 = {currentRoom->x, currentRoom->y};
     Vector2 p2 = {rooms[i].x, rooms[i].y};
-    int distSq = GetDistance(&p1, &p2);
+    const int distSq = GetDistance(&p1, &p2);
 
     if (distSq < closest) {
       closest = distSq;

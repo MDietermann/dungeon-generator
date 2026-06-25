@@ -8,9 +8,10 @@ add_library(dungengenerator STATIC
         src/helper.c
         src/map.c
         src/room.c
-        include/dungeon_generator.h.c)
+        src/dungeon_generator.c
+        include/dungeon_generator.h)
 
-target_include_directories(dungengenerator PUBLIC include)
+target_include_directories(dungengenerator PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(dungengenerator PUBLIC raylib m)
 
 # Test executable

@@ -10,7 +10,7 @@ typedef void (*CellOperation)(int map[GetMapHeight()][GetMapWidth()], int row,
                               int col);
 
 void ForEachCell(int map[GetMapHeight()][GetMapWidth()], const CellOperation op) {
-  struct MapData *md = GetMapData();
+  const struct MapData *md = GetMapData();
 
   if (md == NULL) {
     fprintf(stderr, "MapData not initialized. Run InitMapData first!");
@@ -34,12 +34,12 @@ void InitCell(int map[GetMapHeight()][GetMapWidth()], const int row, const int c
 }
 
 void DrawCell(int map[GetMapHeight()][GetMapWidth()], const int row, const int col) {
-  Color cellColor = colors[map[row][col]];
-  Vector4 cellColorVector = ColorNormalize(cellColor);
-  Vector4 borderColorVector = {1.0 - cellColorVector.x, 1.0 - cellColorVector.y,
+  const Color cellColor = colors[map[row][col]];
+  const Vector4 cellColorVector = ColorNormalize(cellColor);
+  const Vector4 borderColorVector = {1.0 - cellColorVector.x, 1.0 - cellColorVector.y,
                                1.0 - cellColorVector.z, cellColorVector.w};
 
-  Color borderColor = ColorFromNormalized(borderColorVector);
+  const Color borderColor = ColorFromNormalized(borderColorVector);
 
   DrawRectangle(col * GetCellSize(), row * GetCellSize(), GetCellSize(),
                 GetCellSize(), cellColor);
